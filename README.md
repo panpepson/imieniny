@@ -1,6 +1,8 @@
-# imieniny
-Polskie imieniny API
+# Imieniny
 
+API polskich imienin. Nie było nigdzie to se sam zrobiłem sobie i działa :)  
+
+# Demo live
 
 Imieniny mozna pobrac tak 
 
