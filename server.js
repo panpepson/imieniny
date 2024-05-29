@@ -1,54 +1,54 @@
 const express = require('express');
+const app = express();
 const fs = require('fs');
 const path = require('path');
-const csv = require('csv-parser');
 
-const app = express();
-const PORT = 3030;
+// Middleware do dodawania nagłówków CORS
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Zezwala na wszystkie źródła
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
 
-function getNameDays(month, day) {
-    return new Promise((resolve, reject) => {
-        const results = [];
-        const filePath = path.join(__dirname, 'data', `${month}.csv`);
-
-        fs.createReadStream(filePath)
-            .pipe(csv({ separator: ';' }))
-            .on('data', (data) => results.push(data))
-            .on('end', () => {
-                const entry = results.find(row => parseInt(row.data) === day);
-                if (entry) {
-                    resolve(entry.imieniny);
-                } else {
-                    reject('Name day not found');
-                }
-            })
-            .on('error', reject);
-    });
-}
-
-app.get('/:date', async (req, res) => {
-    const dateStr = req.params.date;
-
-    if (dateStr.length !== 6) {
-        return res.status(400).send('Invalid date format. Use DDMMYY.');
-    }
-
-    const day = parseInt(dateStr.substring(0, 2), 10);
-    const month = dateStr.substring(2, 4);
-
-    if (isNaN(day) || parseInt(month) < 1 || parseInt(month) > 12) {
-        return res.status(400).send('Invalid date.');
-    }
+// Funkcja do pobierania danych imienin z pliku CSV
+const getNameDays = (day, month) => {
+    const fileName = `${String(month).padStart(2, '0')}.csv`;
+    const filePath = path.join(__dirname, 'data', fileName);
 
     try {
-        const nameDays = await getNameDays(month, day);
-        res.send({ date: `${day}-${month}`, nameDays });
-    } catch (error) {
-        res.status(500).send(error);
+        const data = fs.readFileSync(filePath, 'utf8');
+        const lines = data.split('\n');
+        for (const line of lines) {
+            const [csvDay, nameDays] = line.split(';');
+            if (csvDay.trim() === String(day)) {
+                return nameDays.trim();
+            }
+        }
+    } catch (err) {
+        console.error(`Błąd podczas odczytu pliku ${fileName}:`, err);
+    }
+
+    return null;
+};
+
+// Endpoint API do pobierania imienin
+app.get('/:date', (req, res) => {
+    const { date } = req.params;
+    const day = parseInt(date.slice(0, 2), 10);
+    const month = parseInt(date.slice(2, 4), 10);
+
+    const nameDays = getNameDays(day, month);
+
+    if (nameDays) {
+        res.json({ date: `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}`, nameDays });
+    } else {
+        res.status(404).json({ error: 'Nie znaleziono imienin dla podanej daty' });
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// Uruchomienie serwera
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Serwer API działa na porcie ${port}`);
 });
-
