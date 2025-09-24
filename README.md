@@ -1,6 +1,6 @@
 # Imieniny
 
-API polskich imienin. Nie było nigdzie to se sam zrobiłem sobie i działa :)  
+API polskich imienin. Nie było nigdzie to se sam zrobiłem i działa :)  
 
 # Demo live
 
